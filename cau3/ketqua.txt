@@ -1,3 +1,9 @@
+1.Tạo một deployment tên là webapp, với 1 label là “appication:webapp" với 1 replica,
+sử dụng image là nginx:latest và expose ra port 80 trên một ClusterIP service trên
+namespace cau3.
+
+KQ :
+
 # tạo deployment webapp
 tulha@Black-Aspire:~/Documents/github/k8s_finalexam/cau3$ cat deployment.yml 
 apiVersion: apps/v1
@@ -47,6 +53,12 @@ webapp   2/2     2            2           12s   nginx        nginx:latest   appi
 tulha@Black-Aspire:~/Documents/github/k8s_finalexam/cau3$ k get service -n cau3 -owide
 NAME             TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)   AGE   SELECTOR
 nginx-nodeport   ClusterIP   10.102.192.254   <none>        80/TCP    25s   appication=webapp
+
+
+2. Tạo một service account tên là webapp-sa và assign vào trong deployment webapp ở
+trên.
+
+KQ :
 
 # tạo service account & apply 
 tulha@Black-Aspire:~/Documents/github/k8s_finalexam/cau3$ k apply -f webapp-sa.yml 
@@ -101,6 +113,12 @@ deployment.apps/webapp configured
 service/nginx-nodeport unchanged
 tulha@Black-Aspire:~/Documents/github/k8s_finalexam/cau3$ k describe deployment webapp -n cau3 | grep "Service Acc"
   Service Account:  webapp-sa
+
+3. Tạo 1 user k8s-readonly chỉ có quyền read trên pod và không có quyền trên các
+resource khác trong namespace cau3.
+
+KQ :
+
 
 # Create user k8s-readonly
 ## gen key : 

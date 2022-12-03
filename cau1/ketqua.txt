@@ -9,7 +9,11 @@ kube-worker-1         Ready    <none>                 30d   v1.23.10   10.5.91.4
 kute-master           Ready    control-plane,master   30d   v1.23.10   10.5.91.71    <none>        Ubuntu 20.04.5 LTS   5.4.0-40-generic    docker://20.10.17
 tulha-kube-worker-2   Ready    <none>                 27d   v1.23.3    10.5.91.241   <none>        Ubuntu 20.04.5 LTS   5.4.0-131-generic   docker://20.10.17
 
-2. 
+2. Tạo 1 deployment tên là webapp với 2 replica, sử dụng image nginx 1.18.0 và cung
+cấp tài nguyên cpu min là 0.1, max 0.5. Kiểm tra trạng thái của deployment và pod.
+
+KQ : 
+
 tulha@Black-Aspire:~/Documents/github/k8s_finalexam$ cat 2.yml 
 apiVersion: apps/v1
 kind: Deployment
@@ -59,7 +63,10 @@ tulha@Black-Aspire:~/Documents/github/k8s_finalexam$ k describe pod nginx-deploy
     Requests:
       cpu:        100m
 
-3.
+3. Expose webapp sử dụng một dịch vụ dạng NodePort
+
+KQ :
+
 tulha@Black-Aspire:~/Documents/github/k8s_finalexam$ k expose deployment nginx-deployment --type=NodePort --name nodeport-sv
 tulha@Black-Aspire:~/Documents/github/k8s_finalexam$ k get services
 NAME          TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
@@ -67,7 +74,7 @@ kubernetes    ClusterIP   10.96.0.1       <none>        443/TCP        19d
 nodeport-sv   NodePort    10.107.79.244   <none>        80:31967/TCP   53s
 
 
-4.
+4.  Chạy lệnh curl để truy cập vào webapp.
 tulha@Black-Aspire:~/Documents/github/k8s_finalexam$ curl 10.5.91.4:31967
 <!DOCTYPE html>
 <html>

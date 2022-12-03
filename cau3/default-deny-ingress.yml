@@ -4,9 +4,7 @@ metadata:
   name: default-deny-ingress
   namespace: cau3
 spec:
-  podSelector: 
-    matchLabels:
-      appication: webapp
+  podSelector: {}
   policyTypes: 
     - Ingress
   
