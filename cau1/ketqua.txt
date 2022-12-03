@@ -1,0 +1,96 @@
+1. Tạo 1 kubernetes cluster bao gồm 1 master + 2 workers. Liệt kê các node của cluster
+và thông tin chi tiết: ROLES, INTERNAL-IP, EXTERNAL-IP, … 
+
+KQ : 
+
+root@kute-master:~# kubectl get nodes -owide
+NAME                  STATUS   ROLES                  AGE   VERSION    INTERNAL-IP   EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
+kube-worker-1         Ready    <none>                 30d   v1.23.10   10.5.91.4     <none>        Ubuntu 20.04.5 LTS   5.4.0-40-generic    docker://20.10.17
+kute-master           Ready    control-plane,master   30d   v1.23.10   10.5.91.71    <none>        Ubuntu 20.04.5 LTS   5.4.0-40-generic    docker://20.10.17
+tulha-kube-worker-2   Ready    <none>                 27d   v1.23.3    10.5.91.241   <none>        Ubuntu 20.04.5 LTS   5.4.0-131-generic   docker://20.10.17
+
+2. 
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam$ cat 2.yml 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: nginx
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.18.0
+        ports:
+        - containerPort: 80
+        resources:
+          
+          requests:
+            cpu: "100m"
+          limits:
+            cpu: "500m"
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam$ kubectl apply -f 2.yml 
+deployment.apps/nginx-deployment created
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam$ kubectl get deployment -owide
+NAME               READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES         SELECTOR
+nginx-deployment   2/2     2            2           39s   nginx        nginx:1.18.0   app=nginx
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam$ kubectl get pod -owide
+NAME                               READY   STATUS    RESTARTS        AGE   IP             NODE                  NOMINATED NODE   READINESS GATES
+nginx-deployment-77ffcf7fc-kkcs7   1/1     Running   0               45s   10.244.1.104   kube-worker-1         <none>           <none>
+nginx-deployment-77ffcf7fc-v7fkt   1/1     Running   0               44s   10.244.2.54    tulha-kube-worker-2   <none>           <none>
+
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam$ k describe pod nginx-deployment-77ffcf7fc-kkcs7 | grep -i limits -A 3
+    Limits:
+      cpu:  500m
+    Requests:
+      cpu:        100m
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam$ k describe pod nginx-deployment-77ffcf7fc-v7fkt | grep -i limits -A 3
+    Limits:
+      cpu:  500m
+    Requests:
+      cpu:        100m
+
+3.
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam$ k expose deployment nginx-deployment --type=NodePort --name nodeport-sv
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam$ k get services
+NAME          TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
+kubernetes    ClusterIP   10.96.0.1       <none>        443/TCP        19d
+nodeport-sv   NodePort    10.107.79.244   <none>        80:31967/TCP   53s
+
+
+4.
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam$ curl 10.5.91.4:31967
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+    body {
+        width: 35em;
+        margin: 0 auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+    }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
