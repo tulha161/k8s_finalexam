@@ -171,3 +171,16 @@ Error from server (Forbidden): pods is forbidden: User "k8s-readonly" cannot cre
 tulha@Black-Aspire:~/Documents/github/k8s_finalexam/cau3$ k apply -f  default-deny-ingress.yml 
 networkpolicy.networking.k8s.io/default-deny-ingress created
 
+- Check NetworkPolicy : 
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam/cau3$ k describe netpol default-deny-ingress
+Name:         default-deny-ingress
+Namespace:    cau3
+Created on:   2022-12-03 16:05:12 +0700 +07
+Labels:       <none>
+Annotations:  <none>
+Spec:
+  PodSelector:     <none> (Allowing the specific traffic to all pods in this namespace)
+  Allowing ingress traffic:
+    <none> (Selected pods are isolated for ingress connectivity)
+  Not affecting egress traffic
+  Policy Types: Ingress
