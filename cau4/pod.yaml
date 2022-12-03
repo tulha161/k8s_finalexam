@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: redis-master-node
+  name: redis-master-node
+spec:
+  containers:
+  - image: redis:latest
+    name: redis-master-node
+  restartPolicy: Always

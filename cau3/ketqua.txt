@@ -1,0 +1,155 @@
+# tạo deployment webapp
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam/cau3$ cat deployment.yml 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webapp
+  labels:
+    appication: webapp
+  namespace: cau3
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      appication: webapp
+  template:
+    metadata:
+      labels:
+        appication: webapp
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+          name: webapp-port
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-nodeport
+  namespace: cau3
+spec:
+  selector:
+    appication: webapp
+  ports:
+  - name: nginx-service-port
+    protocol: TCP
+    port: 80
+    targetPort: webapp-port
+
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam/cau3$ k apply -f deployment.yml 
+deployment.apps/webapp created
+service/nginx-nodeport created
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam/cau3$ k get deployment -n cau3 -owide
+NAME     READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES         SELECTOR
+webapp   2/2     2            2           12s   nginx        nginx:latest   appication=webapp
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam/cau3$ k get service -n cau3 -owide
+NAME             TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)   AGE   SELECTOR
+nginx-nodeport   ClusterIP   10.102.192.254   <none>        80/TCP    25s   appication=webapp
+
+# tạo service account & apply 
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam/cau3$ k apply -f webapp-sa.yml 
+serviceaccount/webapp-sa created
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam/cau3$ k get serviceaccounts -owide -n cau3
+NAME        SECRETS   AGE
+default     1         10m
+webapp-sa   1         18s
+
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam/cau3$ cat deployment.yml 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webapp
+  labels:
+    appication: webapp
+  namespace: cau3
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      appication: webapp
+  template:
+    metadata:
+      labels:
+        appication: webapp
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+          name: webapp-port
+      serviceAccountName: webapp-sa
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-nodeport
+  namespace: cau3
+spec:
+  selector:
+    appication: webapp
+  ports:
+  - name: nginx-service-port
+    protocol: TCP
+    port: 80
+    targetPort: webapp-port
+
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam/cau3$ k apply -f deployment.yml 
+deployment.apps/webapp configured
+service/nginx-nodeport unchanged
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam/cau3$ k describe deployment webapp -n cau3 | grep "Service Acc"
+  Service Account:  webapp-sa
+
+# Create user k8s-readonly
+## gen key : 
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam/cau3$ openssl genrsa -out k8s-ro.key 2048
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam/cau3$ openssl req -new -key k8s-ro.key -out k8s-ro.csr 
+## import CSR : 
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam/cau3$ 
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam/cau3$ CSR=$(cat k8s-ro.csr | base64 | tr -d "\n")
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam/cau3$ echo $CSR
+## create CSR request & apply
+touch request.yml
+k apply -f request.yml
+## Approve request csr & get crt file for user  
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam/cau3$ k get csr 
+NAME           AGE    SIGNERNAME                            REQUESTOR          REQUESTEDDURATION   CONDITION
+demoUser       103s   kubernetes.io/kube-apiserver-client   kubernetes-admin   <none>              Pending
+k8s-readonly   12s    kubernetes.io/kube-apiserver-client   kubernetes-admin   <none>              Pending
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam/cau3$ k certificate approve k8s-readonly
+certificatesigningrequest.certificates.k8s.io/k8s-readonly approved
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam/cau3$ kubectl get csr k8s-readonly -o jsonpath='{.status.certificate}'| base64 -d > k8s-readonly.crt
+
+## Create role & rolebinding
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam/cau3$ k apply -f ro-role.yml 
+role.rbac.authorization.k8s.io/ro-role created
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam/cau3$ k get role -ncau3
+NAME      CREATED AT
+ro-role   2022-12-03T08:36:14Z
+
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam/cau3$ kubectl create rolebinding ro-role-binding-k8s-readonly --role=ro-role --user=k8s-readonly -ncau3
+rolebinding.rbac.authorization.k8s.io/ro-role-binding-k8s-readonly created
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam/cau3$ k get  rolebinding -ncau3
+NAME                           ROLE           AGE
+ro-role-binding-k8s-readonly   Role/ro-role   2s
+
+## Testing
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam/cau3$ k -ncau3 --as k8s-readonly get pod
+NAME                      READY   STATUS    RESTARTS   AGE
+webapp-7848fd5647-brrks   1/1     Running   0          18m
+webapp-7848fd5647-gw4nl   1/1     Running   0          18m
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam/cau3$ k  --as k8s-readonly get pod
+Error from server (Forbidden): pods is forbidden: User "k8s-readonly" cannot list resource "pods" in API group "" in the namespace "default": RBAC: role.rbac.authorization.k8s.io "ro-role" not found
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam/cau3$ k -ncau3 --as k8s-readonly delete pod webapp-7848fd5647-brrks
+Error from server (Forbidden): pods "webapp-7848fd5647-brrks" is forbidden: User "k8s-readonly" cannot delete resource "pods" in API group "" in the namespace "cau3"
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam/cau3$ k -ncau3 --as k8s-readonly run pod --image=nginx tulha_test
+Error from server (Forbidden): pods is forbidden: User "k8s-readonly" cannot create resource "pods" in API group "" in the namespace "cau3"
+-> result cho thấy user k8s có quyền listing, get pod ở ns "cau3" nhưng ko thể  xóa pod , tạo port
+
+4. Tạo 1 Network Policy tên là default-deny-ingress để chặn tất cả các traffic đi vào pod trong namespace cau3. Triển khai Network Policy này
+- Tạo NetworkPolicy : 
+tulha@Black-Aspire:~/Documents/github/k8s_finalexam/cau3$ k apply -f  default-deny-ingress.yml 
+networkpolicy.networking.k8s.io/default-deny-ingress created
+

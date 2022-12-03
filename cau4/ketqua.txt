@@ -1,0 +1,21 @@
+root@kute-master:/etc/kubernetes/manifests# cat redis-master-node.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: redis-master-node
+  name: redis-master-node
+spec:
+  containers:
+  - image: redis:latest
+    name: redis-master-node
+  restartPolicy: Always
+root@kute-master:/etc/kubernetes/manifests# kubectl get node 
+NAME                  STATUS   ROLES                  AGE   VERSION
+kube-worker-1         Ready    <none>                 30d   v1.23.10
+kute-master           Ready    control-plane,master   30d   v1.23.10
+tulha-kube-worker-2   Ready    <none>                 27d   v1.23.3
+
+root@kute-master:/etc/kubernetes/manifests# kubectl get pod -owide  | grep -v nginx
+NAME                               READY   STATUS    RESTARTS   AGE    IP             NODE                  NOMINATED NODE   READINESS GATES
+redis-master-node-kute-master      1/1     Running   0          3m7s   10.244.0.4     kute-master           <none>           <none>
